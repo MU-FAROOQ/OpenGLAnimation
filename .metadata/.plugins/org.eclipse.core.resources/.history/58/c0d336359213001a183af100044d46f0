@@ -1,0 +1,1416 @@
+/* CS2150Coursework.java
+ * TODO: put your university username and full name here
+ *
+ * Scene Graph:
+ *  Scene origin
+ *  |
+ *
+ *  TODO: Provide a scene graph for your submission
+ */
+package coursework.MuhammadUmarFarooq;
+
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.util.glu.Cylinder;
+import org.lwjgl.util.glu.Sphere;
+import org.newdawn.slick.opengl.Texture;
+import GraphicsLab.*;
+
+/**
+ * TODO: Briefly describe your submission here
+ *
+ * <p>Controls:
+ * <ul>
+ * <li>Press the escape key to exit the application.
+ * <li>Hold the x, y and z keys to view the scene along the x, y and z axis, respectively
+ * <li>While viewing the scene along the x, y or z axis, use the up and down cursor keys
+ *      to increase or decrease the viewpoint's distance from the scene origin
+ * </ul>
+ * TODO: Add any additional controls for your sample to the list above
+ *
+ */
+public class CS2150Coursework extends GraphicsLab
+{
+	public static final Colour ORANGE = new Colour(238,154,0);
+	
+    //display list id for plane
+    private final int planeList = 1;
+    //display list id for cube
+    private final int cubeList = 2;
+    //display list id for roof
+    private final int roofList = 3;
+    //display list id for door
+    private final int doorList = 4;
+    //display list id for windmill stand
+    private final int windmillStandList = 5;
+    //display list id for windmill stand
+    private final int windmillBladesList = 6;
+    //display list id for truck hood
+    private final int truckHoodList = 7;
+    //display list id for truck roof
+    private final int truckRoofList = 8;
+    //display list id for truck back
+    private final int truckBackList = 9;
+    //windmill spin
+    private float windmillSpin = 0.0f;
+    //scene rotation
+    private float rotateScene = 0.0f;
+
+    /** ids for nearest, linear and mipmapped textures for the ground plane */
+    private Texture grass;
+    /** ids for nearest, linear and mipmapped textures for the back plane */
+    private Texture sky;
+    // store door texture
+    private Texture door;
+    
+    //TODO: Feel free to change the window title and default animation scale here
+    public static void main(String args[])
+    {   new CS2150Coursework().run(WINDOWED,"CS2150 Coursework Submission",0.01f);
+    }
+
+    protected void initScene() throws Exception
+    {//TODO: Initialise your resources here - might well call other methods you write.
+    	// load the textures
+        grass = loadTexture("coursework/MuhammadUmarFarooq/textures/grass.jpg");
+        sky = loadTexture("coursework/MuhammadUmarFarooq/textures/starSky.jpg");
+        door = loadTexture("coursework/MuhammadUmarFarooq/textures/doors.jpg");
+        
+    	// global ambient light level
+        float globalAmbient[]   = {0.2f,  0.2f,  0.2f, 1.0f};
+        // set the global ambient lighting
+        GL11.glLightModel(GL11.GL_LIGHT_MODEL_AMBIENT,FloatBuffer.wrap(globalAmbient));
+
+        // the first light for the scene is white...
+        float diffuse0[]  = { 0.6f,  0.6f, 0.6f, 1.0f};
+        // ...with a dim ambient contribution...
+        float ambient0[]  = { 0.5f,  0.5f, 0.5f, 1.0f};
+        // ...and is positioned above the viewpoint
+        float position0[] = { 0.0f, 10.0f, 0.0f, 1.0f};
+        
+        // supply OpenGL with the properties for the first light
+        GL11.glLight(GL11.GL_LIGHT0, GL11.GL_AMBIENT, FloatBuffer.wrap(ambient0));
+        GL11.glLight(GL11.GL_LIGHT0, GL11.GL_DIFFUSE, FloatBuffer.wrap(diffuse0));
+        GL11.glLight(GL11.GL_LIGHT0, GL11.GL_SPECULAR, FloatBuffer.wrap(diffuse0));
+        GL11.glLight(GL11.GL_LIGHT0, GL11.GL_POSITION, FloatBuffer.wrap(position0));
+        // enable the first light
+        GL11.glEnable(GL11.GL_LIGHT0);
+
+        // enable lighting calculations
+        GL11.glEnable(GL11.GL_LIGHTING);
+        // ensure that all normals are re-normalised after transformations automatically
+        GL11.glEnable(GL11.GL_NORMALIZE);
+        
+    	GL11.glNewList(planeList, GL11.GL_COMPILE);
+    	{
+    		drawPlane();
+    	}
+    	GL11.glEndList();
+    	GL11.glNewList(cubeList, GL11.GL_COMPILE);
+    	{
+    		drawUnitCube();
+    	}
+    	GL11.glEndList();
+    	GL11.glNewList(roofList, GL11.GL_COMPILE);
+    	{
+    		drawUnitRoof();
+    	}
+    	GL11.glEndList();
+    	GL11.glNewList(doorList, GL11.GL_COMPILE);
+    	{
+    		drawUnitDoor();
+    	}
+    	GL11.glEndList();
+    	GL11.glNewList(windmillStandList, GL11.GL_COMPILE);
+    	{
+    		drawWindmillStand();
+    	}
+    	GL11.glEndList();
+    	GL11.glNewList(windmillBladesList, GL11.GL_COMPILE);
+    	{
+    		drawWindmillBlades();
+    	}
+    	GL11.glEndList();
+    	GL11.glNewList(truckHoodList, GL11.GL_COMPILE);
+    	{
+    		drawTruckHood();
+    	}
+    	GL11.glEndList();
+    	GL11.glNewList(truckRoofList, GL11.GL_COMPILE);
+    	{
+    		drawTruckRoof();
+    	}
+    	GL11.glEndList();
+    	GL11.glNewList(truckBackList, GL11.GL_COMPILE);
+    	{
+    		drawTruckBack();
+    	}
+    	GL11.glEndList();
+    }
+    protected void checkSceneInput()
+    {//TODO: Check for keyboard and mouse input here
+        if(Keyboard.isKeyDown(Keyboard.KEY_R))
+        {   
+        	rotateScene -= 1.0f * getAnimationScale(); // Make the house go around if the R key is pressed
+            if (rotateScene > 360.0f) // Wrap the angle back around into 0-360 degrees.
+            {  
+            	rotateScene = 0.0f;
+            }
+        }
+    }
+    protected void updateScene()
+    {
+        //TODO: Update your scene variables here - remember to use the current animation scale value
+        //        (obtained via a call to getAnimationScale()) in your modifications so that your animations
+        //        can be made faster or slower depending on the machine you are working on
+    	
+    	// increase windmillSpin
+    	windmillSpin += -1 * getAnimationScale();
+    	
+    }
+    protected void renderScene()
+    {//TODO: Render your scene here - remember that a scene graph will help you write this method! 
+     //      It will probably call a number of other methods you will write.
+    	//GL11.glTranslatef(0.0f, 0.0f, -5.0f);
+    	//GL11.glScalef(0.2f, 0.2f, 0.2f);
+    	
+    	GL11.glRotatef(rotateScene,0.0f , 1.0f, 0.0f);
+    	
+    	// draw the ground plane
+        GL11.glPushMatrix();
+        {
+            // disable lighting calculations so that they don't affect
+            // the appearance of the texture 
+            GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
+            GL11.glDisable(GL11.GL_LIGHTING);
+            // change the geometry colour to orange so that the texture
+            // is bright and details can be seen clearly and looks like farm land
+            ORANGE.submit();
+            // enable texturing and bind an appropriate texture
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D,grass.getTextureID());
+            
+            // position, scale and draw the ground plane using its display list
+            GL11.glTranslatef(0.0f,-1.0f,-10.0f);
+            GL11.glScalef(25.0f, 1.0f, 20.0f);
+            
+	        //GL11.glRotatef(rotateScene, 0.0f, 1.0f, 0.0f);
+            
+            GL11.glCallList(planeList);
+            
+            // disable textures and reset any local lighting changes
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+   
+        // draw the back plane
+        GL11.glPushMatrix();
+        {
+            // disable lighting calculations so that they don't affect
+            // the appearance of the texture 
+            GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
+            GL11.glDisable(GL11.GL_LIGHTING);
+            // change the geometry colour to white so that the texture
+            // is bright and details can be seen clearly
+            Colour.WHITE.submit();
+            // enable texturing and bind an appropriate texture
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D,sky.getTextureID());
+            
+            // position, scale and draw the back plane using its display list
+            GL11.glTranslatef(0.0f,4.0f,-20.0f);
+            GL11.glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+            GL11.glScalef(25.0f, 1.0f, 10.0f);
+            GL11.glCallList(planeList);
+            
+            // disable textures and reset any local lighting changes
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        // draw the barn, its roof and door
+        GL11.glPushMatrix();
+        {
+            // position and scale the house
+	        GL11.glTranslatef(3.0f, 0.0f, -10.0f);
+	        GL11.glScalef(2.0f, 2.0f, 2.0f);
+	        // rotate the house a little so that we can see more of it
+	        GL11.glRotatef(40.0f, 0.0f, 1.0f, 0.0f);
+	        
+	        // how shiny are the front faces of the house (specular exponent)
+	        float houseFrontShininess  = 2.0f;
+	        // specular reflection of the front faces of the house
+	        float houseFrontSpecular[] = {0.1f, 0.0f, 0.0f, 1.0f};
+	        // diffuse reflection of the front faces of the house
+	        float houseFrontDiffuse[]  = {0.6f, 0.2f, 0.2f, 1.0f};
+	        
+	        // set the material properties for the house using OpenGL
+	        GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, houseFrontShininess);
+	        GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(houseFrontSpecular));
+	        GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, FloatBuffer.wrap(houseFrontDiffuse));
+
+	        // draw the base of the house using its display list
+	        GL11.glCallList(cubeList);
+	        
+	        // position and scale the house's roof relative to the base of the house
+	        GL11.glTranslatef(0.0f, 0.75f, 0.0f);
+	        GL11.glScalef(1.0f, 0.5f, 1.0f);
+	        
+	        // how shiny are the front faces of the roof (specular exponent)
+	        float roofFrontShininess = 2.0f;
+	        // specular reflection of the front faces of the roof
+	        float roofFrontSpecular[] = {0.1f, 0.1f, 0.1f, 1.0f};
+	        // diffuse reflection of the front faces of the roof
+	        float roofFrontDiffuse[] = {0.2f, 0.2f, 0.2f, 1.0f};
+	        
+            // Set the material properties for the house using OpenGL
+            GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, roofFrontShininess);
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(roofFrontSpecular));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, FloatBuffer.wrap(roofFrontDiffuse));
+
+            // draw the roof using its display list
+            GL11.glCallList(roofList);
+            
+            // disable lighting calculations so that they don't affect
+            // the appearance of the texture 
+            GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
+            // change the geometry colour to white so that the texture
+            // is bright and details can be seen clearly
+            Colour.WHITE.submit();
+            // enable texturing and bind an appropriate texture
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D,door.getTextureID());
+            
+            // pos/scale house door
+            GL11.glTranslatef(-0.5001f, -1.5f, -0.28f);
+            GL11.glRotatef(-90, 0.0f, 1.0f, 0.0f);
+            GL11.glScalef(3f, 2f, 1.5f);
+            
+            //how shiny are the front faces of the door
+            float doorFrontShininess = 2.0f;
+            //specular reflection of the front faces of the door
+            float doorFrontSpecular[] = {0.6f,0.6f,0.6f,1.0f};
+            //diffuse reflection of the front faces of the door
+            float doorFrontDiffuse[] = {0.4f,0.4f,0.4f,1.0f};
+            
+            //set material properties of the door
+            GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, doorFrontShininess);
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(doorFrontSpecular));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, FloatBuffer.wrap(doorFrontDiffuse));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_AMBIENT, FloatBuffer.wrap(doorFrontDiffuse));
+            
+            //draw door using its display list
+            GL11.glCallList(doorList);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        // draw the moon
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_COLOR_MATERIAL);
+            // how shiny are the front faces of the moon (specular exponent)
+            float moonFrontShininess  = 2.0f;
+            // specular reflection of the front faces of the moon
+            float moonFrontSpecular[] = {0.5f, 0.5f, 0.5f, 1.0f};
+            // diffuse reflection of the front faces of the moon
+            float moonFrontDiffuse[]  = {0.6f, 0.6f, 0.6f, 1.0f};
+            float moonFrontEmission[]  = {0.1f, 0.1f, 0.1f, 1.0f};
+            
+            // set the material properties for the moon using OpenGL
+            GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, moonFrontShininess);
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(moonFrontSpecular));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, FloatBuffer.wrap(moonFrontDiffuse));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_EMISSION, FloatBuffer.wrap(moonFrontEmission));
+            
+            // position and draw the moon using a sphere quadric object
+            GL11.glTranslatef(4.0f, 6.0f, -19.0f);
+            GL11.glScalef(0.8f, 0.8f, 0.8f);
+            new Sphere().draw(1.0f,25,25);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        //draw windmill stand
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
+            // pos/scale windmill stand
+        	GL11.glTranslatef(-3.0f, -1.57f, -10.0f);
+            GL11.glScalef(2f, 3f, 2f);
+            GL11.glRotatef(10, 0.0f, 1.0f, 0.0f);
+            GL11.glRotatef(-18.4f, 1.0f, 0.0f, 0.0f);
+            
+            //how shiny are the front faces of the stand
+            float windmillStandFrontShininess = 2.0f;
+            //specular reflection of the front faces of the stand
+            float windmillStandFrontSpecular[] = {0.5f,0.4f,0.3f,1.0f};
+            //diffuse reflection of the front faces of the stand
+            float windmillStandFrontDiffuse[] = {0.4f,0.4f,0.4f,1.0f};
+            
+            //set material properties of the stand
+            GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, windmillStandFrontShininess);
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(windmillStandFrontSpecular));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, FloatBuffer.wrap(windmillStandFrontDiffuse));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_AMBIENT, FloatBuffer.wrap(windmillStandFrontDiffuse));
+            
+            GL11.glCallList(windmillStandList);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        //draw windmill blades
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
+        	
+            // pos/scale windmill blades
+        	GL11.glTranslatef(-2.7f, 1.45f, -10f);
+            GL11.glScalef(1.5f, 1.5f, 1.5f);
+            GL11.glRotatef(10, 0.0f, 1.0f, 0.0f);
+            GL11.glRotatef(windmillSpin, 0.0f, 0.0f, 1.0f);
+            
+            //how shiny are the front faces of the blades
+            float windmillBladesFrontShininess = 2.0f;
+            //specular reflection of the front faces of the blades
+            float windmillBladesFrontSpecular[] = {0.5f,0.4f,0.3f,1.0f};
+            //diffuse reflection of the front faces of the blades
+            float windmillBladesFrontDiffuse[] = {0.4f,0.4f,0.4f,1.0f};
+            
+            //set material properties of the blades
+            GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, windmillBladesFrontShininess);
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(windmillBladesFrontSpecular));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, FloatBuffer.wrap(windmillBladesFrontDiffuse));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_AMBIENT, FloatBuffer.wrap(windmillBladesFrontDiffuse));
+            
+            GL11.glCallList(windmillBladesList);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        //draw truck hood
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
+        	
+            // pos/scale truck hood
+        	GL11.glTranslatef(-0.75f, -0.65f, -5.0f);
+	        GL11.glScalef(1f, 0.7f, 1.0f);
+
+            //how shiny are the front faces of the hood
+            float FrontShininess = 2.0f;
+            //specular reflection of the front faces of the hood
+            float FrontSpecular[] = {1f,0.0f,0.0f,1.0f};
+            //diffuse reflection of the front faces of the hood
+            float FrontDiffuse[] = {0.4f,0.4f,0.4f,1.0f};
+            
+            //set material properties of the hood
+            GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, FrontShininess);
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(FrontSpecular));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, FloatBuffer.wrap(FrontDiffuse));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_AMBIENT, FloatBuffer.wrap(FrontDiffuse));
+            
+            GL11.glCallList(truckHoodList);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        //draw truck back
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
+        	
+            // pos/scale truck back
+        	GL11.glTranslatef(-1.75f, -0.65f, -5.0f);
+	        GL11.glScalef(1f, 0.7f, 1.0f);
+	        
+            //how shiny are the front faces of the back
+            float FrontShininess = 2.0f;
+            //specular reflection of the front faces of the back
+            float FrontSpecular[] = {1f,0.0f,0.0f,1.0f};
+            //diffuse reflection of the front faces of the back
+            float FrontDiffuse[] = {0.4f,0.4f,0.4f,1.0f};
+            
+            //set material properties of the back
+            GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, FrontShininess);
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(FrontSpecular));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, FloatBuffer.wrap(FrontDiffuse));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_AMBIENT, FloatBuffer.wrap(FrontDiffuse));
+            
+            GL11.glCallList(truckBackList);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        //draw truck top
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
+        	
+            // pos/scale truck top
+        	GL11.glTranslatef(-1.05f, -0.3f, -5f);
+	        GL11.glScalef(0.85f, 0.7f, 1.0f);
+
+            //how shiny are the front faces of the top
+            float frontShininess = 2.0f;
+            //specular reflection of the front faces of the top
+            float frontSpecular[] = {1f,0.0f,0.0f,1.0f};
+            //diffuse reflection of the front faces of the top
+            float frontDiffuse[] = {0.4f,0.4f,0.4f,1.0f};
+            
+            //set material properties of the top
+            GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, frontShininess);
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(frontSpecular));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, FloatBuffer.wrap(frontDiffuse));
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_AMBIENT, FloatBuffer.wrap(frontDiffuse));
+            
+            GL11.glCallList(truckRoofList);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        // draw the truck front right wheel
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_COLOR_MATERIAL);
+            // specular reflection of the front faces of the wheel
+            float frontSpecular[] = {0.6f, 0.6f, 0.6f, 1.0f};
+            
+            // set the material properties for the wheel using OpenGL
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(frontSpecular));
+            
+            // position and draw the moon using a sphere quadric object
+            GL11.glTranslatef(-0.7f, -0.83f, -4.75f);
+            GL11.glScalef(0.14f, 0.14f, 0.05f);
+            new Sphere().draw(1.5f,10,3);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        // draw the truck front left wheel
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_COLOR_MATERIAL);
+            // specular reflection of the front faces of the wheel
+            float frontSpecular[] = {0.6f, 0.6f, 0.6f, 1.0f};
+            
+            // set the material properties for the wheel using OpenGL
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(frontSpecular));
+            
+            // position and draw the moon using a sphere quadric object
+            GL11.glTranslatef(-0.7f, -0.83f, -5.24f);
+            GL11.glScalef(0.14f, 0.14f, 0.05f);
+            new Sphere().draw(1.5f,10,3);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        // draw the truck back right wheel
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_COLOR_MATERIAL);
+            // specular reflection of the front faces of the wheel
+            float frontSpecular[] = {0.6f, 0.6f, 0.6f, 1.0f};
+            
+            // set the material properties for the wheel using OpenGL
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(frontSpecular));
+            
+            // position and draw the moon using a sphere quadric object
+            GL11.glTranslatef(-1.75f, -0.83f, -4.75f);
+            GL11.glScalef(0.14f, 0.14f, 0.05f);
+            new Sphere().draw(1.5f,10,3);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+        
+        // draw the truck back left wheel
+        GL11.glPushMatrix();
+        {
+        	GL11.glPushAttrib(GL11.GL_COLOR_MATERIAL);
+            // specular reflection of the front faces of the wheel
+            float frontSpecular[] = {0.6f, 0.6f, 0.6f, 1.0f};
+            
+            // set the material properties for the wheel using OpenGL
+            GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, FloatBuffer.wrap(frontSpecular));
+            
+            // position and draw the moon using a sphere quadric object
+            GL11.glTranslatef(-1.75f, -0.83f, -5.24f);
+            GL11.glScalef(0.14f, 0.14f, 0.05f);
+            new Sphere().draw(1.5f,10,3);
+            
+            GL11.glPopAttrib();
+        }
+        GL11.glPopMatrix();
+    }
+    protected void setSceneCamera()
+    {
+        // call the default behaviour defined in GraphicsLab. This will set a default perspective projection
+        // and default camera settings ready for some custom camera positioning below...  
+        super.setSceneCamera();
+
+        //TODO: If it is appropriate for your scene, modify the camera's position and orientation here
+        //        using a call to GL11.gluLookAt(...)
+   }
+
+    protected void cleanupScene()
+    {//TODO: Clean up your resources here
+    }
+
+    /**
+     * Draws a plane aligned with the X and Z axis, with its front face toward positive Y.
+     *  The plane is of unit width and height, and uses the current OpenGL material settings
+     *  for its appearance
+     */
+    private void drawPlane()
+    {
+        Vertex v1 = new Vertex(-0.5f, 0.0f,-0.5f); // left,  back
+        Vertex v2 = new Vertex( 0.5f, 0.0f,-0.5f); // right, back
+        Vertex v3 = new Vertex( 0.5f, 0.0f, 0.5f); // right, front
+        Vertex v4 = new Vertex(-0.5f, 0.0f, 0.5f); // left,  front
+        
+        // draw the plane geometry. order the vertices so that the plane faces up
+        GL11.glBegin(GL11.GL_POLYGON);
+        {
+            new Normal(v4.toVector(),v3.toVector(),v2.toVector(),v1.toVector()).submit();
+            
+            GL11.glTexCoord2f(0.0f,0.0f);
+            v4.submit();
+            
+            GL11.glTexCoord2f(6.0f,0.0f);
+            v3.submit();
+            
+            GL11.glTexCoord2f(6.0f,4.0f);
+            v2.submit();
+            
+            GL11.glTexCoord2f(0.0f,4.0f);
+            v1.submit();
+        }
+        GL11.glEnd();
+        
+        // if the user is viewing an axis, then also draw this plane
+        // using lines so that axis aligned planes can still be seen
+        if(isViewingAxis())
+        {
+            // also disable textures when drawing as lines
+            // so that the lines can be seen more clearly
+            GL11.glPushAttrib(GL11.GL_TEXTURE_2D);
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
+            GL11.glBegin(GL11.GL_LINE_LOOP);
+            {
+                v3.submit();
+                v2.submit();
+                v1.submit();
+            }
+            GL11.glEnd();
+            GL11.glPopAttrib();
+        }
+    }
+    
+    /**
+     * Draws a roof geometry of unit length, width and height aligned along the x axis.
+     * The roof uses the current OpenGL material settings for its appearance
+     */
+    private void drawUnitRoof()
+    {
+        Vertex v1 = new Vertex(-0.5f,-0.5f,-0.5f);
+        Vertex v2 = new Vertex(-0.5f, 0.5f, 0.0f);
+        Vertex v3 = new Vertex(-0.5f,-0.5f, 0.5f);
+        Vertex v4 = new Vertex( 0.5f,-0.5f,-0.5f);
+        Vertex v5 = new Vertex( 0.5f, 0.5f, 0.0f);
+        Vertex v6 = new Vertex( 0.5f,-0.5f, 0.5f);
+        
+        // left gable
+        GL11.glBegin(GL11.GL_TRIANGLES);
+        {
+            new Normal(v3.toVector(),v2.toVector(),v1.toVector()).submit();
+            
+            v3.submit();
+            v2.submit();
+            v1.submit();
+        }
+        GL11.glEnd();
+        
+        // back slope
+        GL11.glBegin(GL11.GL_POLYGON);
+        {
+            new Normal(v1.toVector(),v2.toVector(),v5.toVector(),v4.toVector()).submit();
+            
+            v1.submit();
+            v2.submit();
+            v5.submit();
+            v4.submit();
+        }
+        GL11.glEnd();
+        
+        // front slope
+        GL11.glBegin(GL11.GL_POLYGON);
+        {
+            new Normal(v5.toVector(),v2.toVector(),v3.toVector(),v6.toVector()).submit();
+            
+            v5.submit();
+            v2.submit();
+            v3.submit();
+            v6.submit();
+        }
+        GL11.glEnd();
+        
+        // right gable
+        GL11.glBegin(GL11.GL_TRIANGLES);
+        {
+            new Normal(v5.toVector(),v6.toVector(),v4.toVector()).submit();
+            
+            v5.submit();
+            v6.submit();
+            v4.submit();
+        }
+        GL11.glEnd();
+    }
+    /**
+     * Draws a cube of unit length, width and height using the current OpenGL material settings
+     */
+    private void drawUnitCube()
+    {
+        // the vertices for the cube (note that all sides have a length of 1)
+        Vertex v1 = new Vertex(-0.5f, -0.5f,  0.5f);
+        Vertex v2 = new Vertex(-0.5f,  0.5f,  0.5f);
+        Vertex v3 = new Vertex( 0.5f,  0.5f,  0.5f);
+        Vertex v4 = new Vertex( 0.5f, -0.5f,  0.5f);
+        Vertex v5 = new Vertex(-0.5f, -0.5f, -0.5f);
+        Vertex v6 = new Vertex(-0.5f,  0.5f, -0.5f);
+        Vertex v7 = new Vertex( 0.5f,  0.5f, -0.5f);
+        Vertex v8 = new Vertex( 0.5f, -0.5f, -0.5f);
+
+        // draw the near face:
+        GL11.glBegin(GL11.GL_POLYGON);
+        {
+            new Normal(v3.toVector(),v2.toVector(),v1.toVector(),v4.toVector()).submit();
+            
+            v3.submit();
+            v2.submit();
+            v1.submit();
+            v4.submit();
+        }
+        GL11.glEnd();
+
+        // draw the left face:
+        GL11.glBegin(GL11.GL_POLYGON);
+        {
+            new Normal(v2.toVector(),v6.toVector(),v5.toVector(),v1.toVector()).submit();
+            
+            v2.submit();
+            v6.submit();
+            v5.submit();
+            v1.submit();
+        }
+        GL11.glEnd();
+
+        // draw the right face:
+        GL11.glBegin(GL11.GL_POLYGON);
+        {
+            new Normal(v7.toVector(),v3.toVector(),v4.toVector(),v8.toVector()).submit();
+            
+            v7.submit();
+            v3.submit();
+            v4.submit();
+            v8.submit();
+        }
+        GL11.glEnd();
+
+        // draw the top face:
+        GL11.glBegin(GL11.GL_POLYGON);
+        {
+            new Normal(v7.toVector(),v6.toVector(),v2.toVector(),v3.toVector()).submit();
+            
+            v7.submit();
+            v6.submit();
+            v2.submit();
+            v3.submit();
+        }
+        GL11.glEnd();
+
+        // draw the bottom face:
+        GL11.glBegin(GL11.GL_POLYGON);
+        {
+            new Normal(v4.toVector(),v1.toVector(),v5.toVector(),v8.toVector()).submit();
+            
+            v4.submit();
+            v1.submit();
+            v5.submit();
+            v8.submit();
+        }
+        GL11.glEnd();
+
+        // draw the far face:
+        GL11.glBegin(GL11.GL_POLYGON);
+        {
+            new Normal(v6.toVector(),v7.toVector(),v8.toVector(),v5.toVector()).submit();
+            
+            v6.submit();
+            v7.submit();
+            v8.submit();
+            v5.submit();
+        }
+        GL11.glEnd();
+    }
+    
+    private void drawUnitDoor() {
+	 	Vertex v1 = new Vertex(0.0f, -0.5f, 0.0f);
+	 	Vertex v2 = new Vertex(0.0f, 0.1f, 0.0f);
+	 	Vertex v3 = new Vertex(0.2f, 0.1f, 0.0f);
+	 	Vertex v4 = new Vertex(0.2f, -0.5f, 0.0f);
+	 	
+	 	GL11.glBegin(GL11.GL_POLYGON);
+	 	{
+	 		new Normal(v4.toVector(), v3.toVector(), v2.toVector(), v1.toVector()).submit();
+	 		
+	 		GL11.glTexCoord2f(0.0f,0.0f);
+	 		v4.submit();
+	 		GL11.glTexCoord2f(1.0f,0.0f);
+	 		v3.submit();
+	 		GL11.glTexCoord2f(1.0f,1.0f);
+	 		v2.submit();
+	 		GL11.glTexCoord2f(0.0f,1.0f);
+	 		v1.submit();
+	 	}
+	 	GL11.glEnd();
+    }
+    
+    private void drawWindmillStand() {
+    	Vertex v1 = new Vertex(0.0f, 0.0f, 0.6f);
+    	Vertex v2 = new Vertex(0.1f, 1.0f, 0.3f);
+    	Vertex v3 = new Vertex(0.2f, 0.0f, 0.6f);
+    	Vertex v4 = new Vertex(-0.2f, 0.2f, 0.0f);
+    	Vertex v5 = new Vertex(0.0f, 0.2f, 0.0f);
+    	Vertex v6 = new Vertex(0.2f, 0.2f, 0.0f);
+    	Vertex v7 = new Vertex(0.4f, 0.2f, 0.0f);
+    	
+    	GL11.glBegin(GL11.GL_TRIANGLES);
+    	{
+    		new Normal(v3.toVector(), v2.toVector(), v1.toVector()).submit();
+    		
+    		v3.submit();
+    		v2.submit();
+    		v1.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_TRIANGLES);
+    	{
+    		new Normal(v7.toVector(), v2.toVector(), v6.toVector()).submit();
+    		
+    		v7.submit();
+    		v2.submit();
+    		v6.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_TRIANGLES);
+    	{
+    		new Normal(v5.toVector(), v2.toVector(), v4.toVector()).submit();
+    		
+    		v5.submit();
+    		v2.submit();
+    		v4.submit();
+    	}
+    	GL11.glEnd();
+    }
+    
+    private void drawWindmillBlades() {
+    	Vertex v1 = new Vertex(-0.1f, 0.1f, 0.0f);
+    	Vertex v2 = new Vertex(-0.3f, 0.5f, 0.2f);
+    	Vertex v3 = new Vertex(0.3f, 0.5f, 0.2f);
+    	Vertex v4 = new Vertex(0.1f, 0.1f, 0.0f);
+    	Vertex v5 = new Vertex(0.5f, 0.3f, 0.2f);
+    	Vertex v6 = new Vertex(0.5f, -0.3f, 0.2f);
+    	Vertex v7 = new Vertex(0.1f, -0.1f, 0.0f);
+    	Vertex v8 = new Vertex(0.3f, -0.5f, 0.2f);
+    	Vertex v9 = new Vertex(-0.3f, -0.5f, 0.2f);
+    	Vertex v10 = new Vertex(-0.1f, -0.1f, 0.0f);
+    	Vertex v11 = new Vertex(-0.5f, -0.3f, 0.2f);
+    	Vertex v12 = new Vertex(-0.5f, 0.3f, 0.2f);
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v4.toVector(), v3.toVector(), v2.toVector(), v1.toVector()).submit();
+    		
+    		v4.submit();
+    		v3.submit();
+    		v2.submit();
+    		v1.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v6.toVector(), v5.toVector(), v4.toVector(), v7.toVector()).submit();
+    			
+    		v6.submit();
+    		v5.submit();
+    		v4.submit();
+    		v7.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v8.toVector(), v7.toVector(), v10.toVector(), v9.toVector()).submit();
+    		
+    		v8.submit();
+    		v7.submit();
+    		v10.submit();
+    		v9.submit();
+    	}
+    	GL11.glEnd();
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v10.toVector(), v1.toVector(), v12.toVector(), v11.toVector()).submit();
+    		
+    		v10.submit();
+    		v1.submit();
+    		v12.submit();
+    		v11.submit();
+    	}
+    	GL11.glEnd();
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v7.toVector(), v4.toVector(), v1.toVector(), v10.toVector()).submit();
+    		
+    		v7.submit();
+    		v4.submit();
+    		v1.submit();
+    		v10.submit();
+    	}
+    	GL11.glEnd();
+    }
+    
+    private void drawTruckRoof() {
+    	Vertex v1 = new Vertex(-0.5f, -0.25f, 0.3f);
+    	Vertex v2 = new Vertex(-0.5f, 0.25f, 0.3f);
+    	Vertex v3 = new Vertex(0.2f, 0.25f, 0.3f);
+    	Vertex v4 = new Vertex(0.5f, -0.25f, 0.3f);
+    	Vertex v5 = new Vertex(-0.5f, -0.25f, -0.3f);
+    	Vertex v6 = new Vertex(-0.5f, 0.25f, -0.3f);
+    	Vertex v7 = new Vertex(0.2f, 0.25f, -0.3f);
+    	Vertex v8 = new Vertex(0.5f, -0.25f, -0.3f);
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v4.toVector(), v3.toVector(), v2.toVector(), v1.toVector()).submit();
+    		
+    		v4.submit();
+    		v3.submit();
+    		v2.submit();
+    		v1.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v2.toVector(), v6.toVector(), v5.toVector(), v1.toVector()).submit();
+    		
+    		v2.submit();
+    		v6.submit();
+    		v5.submit();
+    		v1.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v8.toVector(), v7.toVector(), v3.toVector(), v4.toVector()).submit();
+    		
+    		v8.submit();
+    		v7.submit();
+    		v3.submit();
+    		v4.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v3.toVector(), v7.toVector(), v6.toVector(), v2.toVector()).submit();
+    		
+    		v3.submit();
+    		v7.submit();
+    		v6.submit();
+    		v2.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v8.toVector(), v4.toVector(), v1.toVector(), v5.toVector()).submit();
+    		
+    		v8.submit();
+    		v4.submit();
+    		v1.submit();
+    		v5.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v5.toVector(), v6.toVector(), v7.toVector(), v8.toVector()).submit();
+    		
+    		v5.submit();
+    		v6.submit();
+    		v7.submit();
+    		v8.submit();
+    	}
+    	GL11.glEnd();
+    }
+    
+    private void drawTruckHood() {
+    	Vertex v1 = new Vertex(-0.5f, -0.25f, 0.3f);
+    	Vertex v2 = new Vertex(-0.5f, 0.25f, 0.3f);
+    	Vertex v3 = new Vertex(0.5f, 0.25f, 0.3f);
+    	Vertex v4 = new Vertex(0.5f, -0.25f, 0.3f);
+    	Vertex v5 = new Vertex(0.25f, -0.25f, 0.3f);
+    	Vertex v6 = new Vertex(0.25f, -0.05f, 0.3f);
+    	Vertex v7 = new Vertex(0.225f, 0f, 0.3f);
+    	Vertex v8 = new Vertex(-0.125f, 0f, 0.3f);
+    	Vertex v9 = new Vertex(-0.15f, -0.05f, 0.3f);
+    	Vertex v10 = new Vertex(-0.15f, -0.25f, 0.3f);
+    	Vertex v11 = new Vertex(0.5f, -0.25f, -0.3f);
+    	Vertex v12 = new Vertex(0.5f, 0.25f, -0.3f);
+    	Vertex v13 = new Vertex(-0.5f, 0.25f, -0.3f);
+    	Vertex v14 = new Vertex(-0.5f, -0.25f, -0.3f);
+    	Vertex v15 = new Vertex(-0.15f, -0.25f, -0.3f);
+    	Vertex v16 = new Vertex(-0.15f, -0.05f, -0.3f);
+    	Vertex v17 = new Vertex(-0.125f, 0f, -0.3f);
+    	Vertex v18 = new Vertex(0.225f, 0f, -0.3f);
+    	Vertex v19 = new Vertex(0.25f, -0.05f, -0.3f);
+    	Vertex v20 = new Vertex(0.25f, -0.25f, -0.3f);
+    	Vertex v21 = new Vertex(0.225f, 0.25f, 0.3f);
+    	Vertex v22 = new Vertex(-0.125f, 0.25f, 0.3f);
+    	Vertex v23 = new Vertex(0.225f, 0.25f, -0.3f);
+    	Vertex v24 = new Vertex(-0.125f, 0.25f, -0.3f);
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v10.toVector(), v9.toVector(), v8.toVector(), v22.toVector()).submit();
+    		//new Normal(v2.toVector(), v1.toVector(), v2.toVector(), v1.toVector()).submit();
+    		v2.submit();
+    		v1.submit();
+    		v10.submit();
+    		v9.submit();
+    		v8.submit();
+    		v22.submit();
+    		
+    	}
+    	GL11.glEnd();
+
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v7.toVector(), v21.toVector(), v22.toVector(), v8.toVector()).submit();
+    		v7.submit();
+    		v21.submit();
+    		v22.submit();
+    		v8.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v4.toVector(), v3.toVector(), v21.toVector(), v7.toVector()).submit();
+    	//	new Normal(v6.toVector(), v5.toVector(), v6.toVector(), v5.toVector()).submit();
+    		v4.submit();
+    		v3.submit();
+    		v21.submit();
+    		v7.submit();
+    		v6.submit();
+    		v5.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v1.toVector(), v2.toVector(), v13.toVector(), v14.toVector()).submit();
+    		v1.submit();
+    		v2.submit();
+    		v13.submit();
+    		v14.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v11.toVector(), v12.toVector(), v3.toVector(), v4.toVector()).submit();
+    		v11.submit();
+    		v12.submit();
+    		v3.submit();
+    		v4.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v3.toVector(), v12.toVector(), v13.toVector(), v2.toVector()).submit();
+    		v3.submit();
+    		v12.submit();
+    		v13.submit();
+    		v2.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v20.toVector(), v19.toVector(), v18.toVector(), v23.toVector()).submit();
+    		//new Normal(v12.toVector(), v11.toVector(), v12.toVector(), v11.toVector()).submit();
+    		v12.submit();
+    		v11.submit();
+    		v20.submit();
+    		v19.submit();
+    		v18.submit();
+    		v23.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v17.toVector(), v24.toVector(), v23.toVector(), v18.toVector()).submit();
+    		v17.submit();
+    		v24.submit();
+    		v23.submit();
+    		v18.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v14.toVector(), v13.toVector(), v24.toVector(), v17.toVector()).submit();
+    		//new Normal(v16.toVector(), v15.toVector(), v16.toVector(), v15.toVector()).submit();
+    		v14.submit();
+    		v13.submit();
+    		v24.submit();
+    		v17.submit();
+    		v16.submit();
+    		v15.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v15.toVector(), v10.toVector(), v1.toVector(), v14.toVector()).submit();
+    		v15.submit();
+    		v10.submit();
+    		v1.submit();
+    		v14.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v15.toVector(), v16.toVector(), v9.toVector(), v10.toVector()).submit();
+    		v15.submit();
+    		v16.submit();
+    		v9.submit();
+    		v10.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v16.toVector(), v17.toVector(), v8.toVector(), v9.toVector()).submit();
+    		v16.submit();
+    		v17.submit();
+    		v8.submit();
+    		v9.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v17.toVector(), v18.toVector(), v7.toVector(), v8.toVector()).submit();
+    		v17.submit();
+    		v18.submit();
+    		v7.submit();
+    		v8.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v6.toVector(), v7.toVector(), v18.toVector(), v19.toVector()).submit();
+    		v6.submit();
+    		v7.submit();
+    		v18.submit();
+    		v19.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v5.toVector(), v6.toVector(), v19.toVector(), v20.toVector()).submit();
+    		v5.submit();
+    		v6.submit();
+    		v19.submit();
+    		v20.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v11.toVector(), v4.toVector(), v5.toVector(), v20.toVector()).submit();
+    		v11.submit();
+    		v4.submit();
+    		v5.submit();
+    		v20.submit();
+    	}
+    	GL11.glEnd();
+
+    }
+    
+    private void drawTruckBack() {
+    	Vertex v1 = new Vertex(-0.5f, -0.25f, 0.3f);
+    	Vertex v2 = new Vertex(-0.5f, 0f, 0.3f);
+    	Vertex v3 = new Vertex(-0.5f, 0.25f, 0.3f);
+    	Vertex v4 = new Vertex(0.5f, 0.25f, 0.3f);
+    	Vertex v5 = new Vertex(0.5f, 0f, 0.3f);
+    	Vertex v6 = new Vertex(0.5f, -0.25f, 0.3f);
+    	Vertex v7 = new Vertex(0.2f, -0.25f, 0.3f);
+    	Vertex v8 = new Vertex(0.2f, -0.05f, 0.3f);
+    	Vertex v9 = new Vertex(0.175f, 0f, 0.3f);
+    	Vertex v10 = new Vertex(-0.175f, 0f, 0.3f);
+    	Vertex v11 = new Vertex(-0.2f, -0.05f, 0.3f);
+    	Vertex v12 = new Vertex(-0.2f, -0.25f, 0.3f);
+    	Vertex v13 = new Vertex(0.5f, -0.25f, -0.3f);
+    	Vertex v14 = new Vertex(0.5f, 0f, -0.3f);
+    	Vertex v15 = new Vertex(0.5f, 0.25f, -0.3f);
+    	Vertex v16 = new Vertex(-0.5f, 0.25f, -0.3f);
+    	Vertex v17 = new Vertex(-0.5f, 0f, -0.3f);
+    	Vertex v18 = new Vertex(-0.5f, -0.25f, -0.3f);
+    	Vertex v19 = new Vertex(-0.2f, -0.25f, -0.3f);
+    	Vertex v20 = new Vertex(-0.2f, -0.05f, -0.3f);
+    	Vertex v21 = new Vertex(-0.175f, 0f, -0.3f);
+    	Vertex v22 = new Vertex(0.175f, 0f, -0.3f);
+    	Vertex v23 = new Vertex(0.2f, -0.05f, -0.3f);
+    	Vertex v24 = new Vertex(0.2f, -0.25f, -0.3f);
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v1.toVector(), v2.toVector(), v3.toVector(), v16.toVector()).submit();
+    		//new Normal(v17.toVector(), v18.toVector(), v17.toVector(), v18.toVector()).submit();
+    		v1.submit();
+    		v2.submit();
+    		v3.submit();
+    		v16.submit();
+    		v17.submit();
+    		v18.submit();
+    		
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v12.toVector(), v14.toVector(), v15.toVector(), v4.toVector()).submit();
+    		//new Normal(v5.toVector(), v6.toVector(), v5.toVector(), v6.toVector()).submit();
+    		v13.submit();
+    		v14.submit();
+    		v15.submit();
+    		v4.submit();
+    		v5.submit();
+    		v6.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v5.toVector(), v14.toVector(), v17.toVector(), v2.toVector()).submit();
+    		v5.submit();
+    		v14.submit();
+    		v17.submit();
+    		v2.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v2.toVector(), v3.toVector(), v4.toVector(), v5.toVector()).submit();
+    		v2.submit();
+    		v3.submit();
+    		v4.submit();
+    		v5.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v14.toVector(), v15.toVector(), v16.toVector(), v17.toVector()).submit();
+    		v14.submit();
+    		v15.submit();
+    		v16.submit();
+    		v17.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v17.toVector(), v16.toVector(), v3.toVector(), v2.toVector()).submit();
+    		v17.submit();
+    		v16.submit();
+    		v3.submit();
+    		v2.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v5.toVector(), v4.toVector(), v15.toVector(), v14.toVector()).submit();
+    		v5.submit();
+    		v4.submit();
+    		v15.submit();
+    		v14.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v5.toVector(), v4.toVector(), v3.toVector(), v2.toVector()).submit();
+    		v5.submit();
+    		v4.submit();
+    		v3.submit();
+    		v2.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v2.toVector(), v1.toVector(), v12.toVector(), v11.toVector()).submit();
+    		//new Normal(v10.toVector(), v10.toVector(), v10.toVector(), v10.toVector()).submit();
+    		v2.submit();
+    		v1.submit();
+    		v12.submit();
+    		v11.submit();
+    		v10.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v6.toVector(), v5.toVector(), v9.toVector(), v8.toVector()).submit();
+    		//new Normal(v7.toVector(), v7.toVector(), v7.toVector(), v7.toVector()).submit();
+    		v6.submit();
+    		v5.submit();
+    		v9.submit();
+    		v8.submit();
+    		v7.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v17.toVector(), v16.toVector(), v15.toVector(), v14.toVector()).submit();
+    		v17.submit();
+    		v16.submit();
+    		v15.submit();
+    		v14.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v18.toVector(), v17.toVector(), v21.toVector(), v20.toVector()).submit();
+    		//new Normal(v19.toVector(), v19.toVector(), v19.toVector(), v19.toVector()).submit();
+    		v18.submit();
+    		v17.submit();
+    		v21.submit();
+    		v20.submit();
+    		v19.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v14.toVector(), v13.toVector(), v24.toVector(), v23.toVector()).submit();
+    		//new Normal(v22.toVector(), v22.toVector(), v22.toVector(), v22.toVector()).submit();
+    		v14.submit();
+    		v13.submit();
+    		v24.submit();
+    		v23.submit();
+    		v22.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v19.toVector(), v12.toVector(), v1.toVector(), v18.toVector()).submit();
+    		v19.submit();
+    		v12.submit();
+    		v1.submit();
+    		v18.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v19.toVector(), v20.toVector(), v11.toVector(), v12.toVector()).submit();
+    		v19.submit();
+    		v20.submit();
+    		v11.submit();
+    		v12.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v20.toVector(), v21.toVector(), v10.toVector(), v11.toVector()).submit();
+    		v20.submit();
+    		v21.submit();
+    		v10.submit();
+    		v11.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v22.toVector(), v9.toVector(), v10.toVector(), v21.toVector()).submit();
+    		v22.submit();
+    		v9.submit();
+    		v10.submit();
+    		v21.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v8.toVector(), v9.toVector(), v22.toVector(), v23.toVector()).submit();
+    		v8.submit();
+    		v9.submit();
+    		v22.submit();
+    		v23.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v7.toVector(), v8.toVector(), v23.toVector(), v24.toVector()).submit();
+    		v7.submit();
+    		v8.submit();
+    		v23.submit();
+    		v24.submit();
+    	}
+    	GL11.glEnd();
+    	
+    	GL11.glBegin(GL11.GL_POLYGON);
+    	{
+    		new Normal(v13.toVector(), v6.toVector(), v7.toVector(), v24.toVector()).submit();
+    		v13.submit();
+    		v6.submit();
+    		v7.submit();
+    		v24.submit();
+    	}
+    	GL11.glEnd();
+    }
+}
